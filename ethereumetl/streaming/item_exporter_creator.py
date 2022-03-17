@@ -86,7 +86,10 @@ def create_item_exporter(output):
             'contract': 'contracts',
             'token': 'tokens',
         })
-
+    elif item_exporter_type == ItemExporterType.S3:
+        from blockchainetl.jobs.exporters.s3_item_exporter import S3ItemExporter
+        bucket, prefix = get_bucket_and_prefix_from_s3_output(output)
+        item_exporter = S3ItemExporter(bucket=bucket, prefix=prefix)
     else:
         raise ValueError('Unable to determine item exporter type for output ' + output)
 
@@ -103,6 +106,15 @@ def get_bucket_and_path_from_gcs_output(output):
         path = ''
     return bucket, path
 
+def get_bucket_and_prefix_from_s3_output(output):
+    output = output.replace('s3://', '')
+    bucket_and_prefix = output.split('/', 1)
+    bucket = bucket_and_prefix[0]
+    if len(bucket_and_prefix) > 1:
+        prefix = bucket_and_prefix[1]
+    else:
+        prefix = ''
+    return bucket, prefix
 
 def determine_item_exporter_type(output):
     if output is not None and output.startswith('projects'):
@@ -113,6 +125,8 @@ def determine_item_exporter_type(output):
         return ItemExporterType.POSTGRES
     elif output is not None and output.startswith('gs://'):
         return ItemExporterType.GCS
+    elif output is not None and output.startswith('s3://'):
+        return ItemExporterType.S3
     elif output is None or output == 'console':
         return ItemExporterType.CONSOLE
     else:
@@ -125,4 +139,5 @@ class ItemExporterType:
     GCS = 'gcs'
     CONSOLE = 'console'
     KAFKA = 'kafka'
+    S3 = 's3'
     UNKNOWN = 'unknown'
